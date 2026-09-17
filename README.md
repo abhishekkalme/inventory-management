@@ -114,33 +114,3 @@ GET /products/PRODUCT_ID_HERE/history
 ```
 
 Shows all buy and restock records for that product.
-
-## Example
-
-```bash
-# add a product
-curl -X POST http://localhost:5000/products \
-  -H "Content-Type: application/json" \
-  -d '{"productName":"Laptop","price":55000,"availableStock":10}'
-
-# see all products
-curl http://localhost:5000/products
-
-# buy 2 items (put the real product id)
-curl -X POST http://localhost:5000/products/purchase \
-  -H "Content-Type: application/json" \
-  -d '{"productId":"PRODUCT_ID_HERE","quantity":2}'
-
-# restock 5 items
-curl -X POST http://localhost:5000/products/restock \
-  -H "Content-Type: application/json" \
-  -d '{"productId":"PRODUCT_ID_HERE","quantity":5}'
-
-# see history
-curl http://localhost:5000/products/PRODUCT_ID_HERE/history
-```
-
-## Notes
-
-- Every buy and restock is saved in the database, so nothing gets lost.
-- Buying uses a safe update, so two people buying at the same time can't oversell stock.
