@@ -1,0 +1,27 @@
+{
+  "name": "inventory-management",
+  "version": "1.0.0",
+  "description": "REST API to manage product inventory (Node.js, Express.js, MongoDB/Mongoose)",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "inventory",
+    "express",
+    "mongodb",
+    "mongoose",
+    "rest-api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.10.1",
+    "zod": "^4.6.5"
+  }
+}
