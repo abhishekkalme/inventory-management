@@ -1,73 +1,61 @@
 # Inventory Management System
 
-REST API to manage product inventory built with **Node.js**, **Express.js**, and **MongoDB (Mongoose)**.
+A simple REST API to manage product inventory. Built with Node.js, Express.js and MongoDB (Mongoose).
 
-## Features
+## What it does
 
-- Create products (unique name, price > 0, stock >= 0)
-- List all products
-- Purchase products (atomic stock decrement, rejects over-purchase)
-- Restock products (atomic stock increment)
-- Transaction history per product (Purchase / Restock)
+- Add new products
+- See all products
+- Buy products (checks stock first, so you can't buy more than what's available)
+- Restock products
+- See buy/restock history of any product
 
-## Project Structure
+## Folder structure
 
 ```
 src/
-├── app.js                      # Express app + middleware wiring
-├── server.js                   # Entry point (DB connect + listen)
-├── config/
-│   └── db.js                   # MongoDB connection
-├── models/
-│   ├── product.js              # Product schema
-│   └── transaction.js          # Transaction schema
-├── controller/
-│   └── product.controller.js   # Business logic
-├── routes/
-│   └── product.routes.js       # Route definitions
-├── middleware/
-│   ├── validate.js             # asyncHandler + zod validate()
-│   └── errorHandler.js         # 404 + central error handler
-└── validations/
-    └── product.validation.js   # zod schemas
+  app.js                  - sets up the express app
+  server.js               - starts the server
+  config/db.js            - connects to MongoDB
+  models/                 - product and transaction database tables
+  controller/             - main logic (buy, restock, etc.)
+  routes/                 - API routes
+  middleware/             - error handling and validation
+  validations/            - input checking rules
 ```
 
-## Prerequisites
+## How to run
 
-- Node.js 18+
-- A MongoDB connection string (Atlas or local)
+1. Install everything:
 
-## Setup
-
-```bash
-# 1. Install dependencies
+```
 npm install
-
-# 2. Configure environment
-cp .env.example .env
-# then edit .env and set MONGO_URI (and PORT optionally)
-
-# 3. Run the server
-npm start        # production
-npm run dev      # watch mode (Node 18+)
 ```
 
-Server runs at `http://localhost:5000` (or the `PORT` you set).
+2. Make a `.env` file (see `.env.example`):
 
-## Environment Variables
+```
+PORT=5000
+MONGO_URI=your_mongodb_connection_string_here
+```
 
-| Variable    | Required | Description                          |
-| ----------- | -------- | ------------------------------------ |
-| `MONGO_URI` | Yes      | MongoDB connection string            |
-| `PORT`      | No       | Port to listen on (default `3000`)   |
+3. Start the server:
 
-See [.env.example](./.env.example).
+```
+npm start
+```
 
-## API Reference
+That's it. The API will run on `http://localhost:5000`.
 
-Base URL: `http://localhost:<PORT>`
+## API list
 
-### POST /products — Create a product
+### 1. Add a product
+
+```
+POST /products
+```
+
+Send this:
 
 ```json
 {
@@ -77,103 +65,82 @@ Base URL: `http://localhost:<PORT>`
 }
 ```
 
-Rules: `productName` unique (aliases: `name`), `price` > 0, `availableStock` >= 0 (alias: `stock`).
-Responses: `201` created · `400` validation error · `409` duplicate name.
+Rules: name must be unique, price must be more than 0, stock can't be negative.
 
-### GET /products — List all products
+### 2. Get all products
 
-Response `200`:
-
-```json
-{ "success": true, "count": 2, "products": [...] }
+```
+GET /products
 ```
 
-### POST /products/purchase — Purchase a product
+### 3. Buy a product
 
-```json
-{ "productId": "<PRODUCT_ID>", "quantity": 2 }
+```
+POST /products/purchase
 ```
 
-Rules: `quantity` integer > 0; rejected with `400` if it exceeds available stock; stock is decremented atomically and a `Purchase` transaction is recorded.
-Responses: `200` ok · `400` insufficient stock / validation · `404` product not found.
-
-### POST /products/restock — Restock a product
-
-```json
-{ "productId": "<PRODUCT_ID>", "quantity": 5 }
-```
-
-Rules: `quantity` integer > 0; stock is incremented atomically and a `Restock` transaction is recorded.
-Responses: `200` ok · `400` validation · `404` product not found.
-
-### GET /products/:productId/history — Transaction history
-
-Response `200`:
+Send this:
 
 ```json
 {
-  "success": true,
-  "product": { "id": "...", "productName": "Laptop", "availableStock": 13 },
-  "count": 2,
-  "history": [...]
+  "productId": "PRODUCT_ID_HERE",
+  "quantity": 2
 }
 ```
 
-Responses: `200` ok · `400` invalid ID · `404` product not found.
+If you ask for more than the available stock, you'll get an error. Stock goes down on every successful buy.
 
-## Database Schema
+### 4. Restock a product
 
-**Product**
-
-| Field            | Type   | Constraints                          |
-| ---------------- | ------ | ------------------------------------ |
-| `productName`    | String | required, unique, trimmed            |
-| `price`          | Number | required, must be > 0                |
-| `availableStock` | Number | required, >= 0, default 0            |
-| timestamps       | —      | `createdAt`, `updatedAt` auto-managed |
-
-**Transaction**
-
-| Field             | Type     | Constraints                              |
-| ----------------- | -------- | ---------------------------------------- |
-| `productId`       | ObjectId | required, ref `Product`, indexed         |
-| `transactionType` | String   | required, enum `Purchase` / `Restock`    |
-| `quantity`        | Number   | required, integer > 0                    |
-| `transactionDate` | Date     | auto (via timestamps `createdAt` alias)  |
-
-## Error Format
-
-```json
-{ "success": false, "message": "Insufficient stock: requested quantity exceeds available stock" }
+```
+POST /products/restock
 ```
 
-Validation errors include an `errors` array: `[{ "field": "price", "message": "..." }]`.
+Send this:
 
-## Quick Manual Test (curl)
+```json
+{
+  "productId": "PRODUCT_ID_HERE",
+  "quantity": 5
+}
+```
+
+Stock goes up on every successful restock.
+
+### 5. See history of a product
+
+```
+GET /products/PRODUCT_ID_HERE/history
+```
+
+Shows all buy and restock records for that product.
+
+## Example
 
 ```bash
-BASE=http://localhost:5000
-
-# create
-curl -s -X POST $BASE/products -H "Content-Type: application/json" \
+# add a product
+curl -X POST http://localhost:5000/products \
+  -H "Content-Type: application/json" \
   -d '{"productName":"Laptop","price":55000,"availableStock":10}'
 
-# list
-curl -s $BASE/products
+# see all products
+curl http://localhost:5000/products
 
-# purchase (replace ID)
-curl -s -X POST $BASE/products/purchase -H "Content-Type: application/json" \
-  -d '{"productId":"<ID>","quantity":2}'
+# buy 2 items (put the real product id)
+curl -X POST http://localhost:5000/products/purchase \
+  -H "Content-Type: application/json" \
+  -d '{"productId":"PRODUCT_ID_HERE","quantity":2}'
 
-# restock
-curl -s -X POST $BASE/products/restock -H "Content-Type: application/json" \
-  -d '{"productId":"<ID>","quantity":5}'
+# restock 5 items
+curl -X POST http://localhost:5000/products/restock \
+  -H "Content-Type: application/json" \
+  -d '{"productId":"PRODUCT_ID_HERE","quantity":5}'
 
-# history
-curl -s $BASE/products/<ID>/history
+# see history
+curl http://localhost:5000/products/PRODUCT_ID_HERE/history
 ```
 
 ## Notes
 
-- Purchase uses an atomic `findOneAndUpdate` with an `availableStock >= quantity` guard, so concurrent purchases cannot oversell.
-- If writing the transaction record fails after a stock update, the stock change is compensated (rolled back) automatically.
+- Every buy and restock is saved in the database, so nothing gets lost.
+- Buying uses a safe update, so two people buying at the same time can't oversell stock.
